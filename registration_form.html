@@ -1,85 +1,107 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration Form</title>
-    <link rel="stylesheet" href="style1.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration - AI Mock Interviewer</title>
+  <link rel="stylesheet" href="style1.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D82B6B'><path d='M12 2a5 5 0 0 0-5 5v1a4 4 0 0 0-3 3.87A4 4 0 0 0 7 16h1v2a3 3 0 0 0 3 3h2a3 3 0 0 0 3-3v-2h1a4 4 0 0 0 3-4.13A4 4 0 0 0 17 8V7a5 5 0 0 0-5-5z'/></svg>">
 </head>
 <body>
 
-    
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <a href="dashboard.html" class="brand-logo">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/>
+          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/>
+        </svg>
+      </div>
+      <span>AI Mock Interviewer</span>
+    </a>
 
-
-    <div class="container">
-     <div class="title"> Registration </div>
-     <form action="#">
-        <div class="user-details">  
-            
-            
-            <div class="input-box">
-                <span class="details">Full Name</span>
-                <input type="text" placeholder="Enter your name" required>
-            </div>
-
-            <div class="input-box">
-                <span class="details">Username</span>
-                <input type="text" placeholder="Enter your username" required>
-            </div>
-
-            <div class="input-box">
-                <span class="details">Email</span>
-                <input type="text" placeholder="Enter your email" required>
-            </div>
-
-           
-
-            <div class="input-box">
-                <span class="details">Password</span>
-                <input type="text" placeholder="Enter your password" required>
-            </div>
-
-            <div class="input-box">
-                <span class="details">Confirm Password</span>
-                <input type="text" placeholder="Confirm your password " required>
-            </div>
-
-
-        </div>
-
-       <div class="gender-details">
-        <span class="gender-title"> Gender </span>
-        <div class="category">
-            <lable for="">
-                <sapn class="dot one"></sapn>
-                
-                <input type="radio" name="gender" value="Male">Male 
-            </lable>
-
-             <lable for="">
-                <sapn class="dot one"></sapn>
-                <input type="radio" name="gender" value="Female">Female 
-                
-            </lable>
-
-             <lable for="">
-                <sapn class="dot one"></sapn>
-                <input type="radio" name="gender" value="Transgende">Transgender 
-                
-            </lable>
-
-
-        </div>
-       </div>
-
-       <div class="button">
-        <input type="submit"  value="Register">
-       </div>
-
-
-
-     </form>
+    <div class="header-auth-link">
+      Already have an account? <a href="login.html">Login</a>
     </div>
+  </header>
+
+  <div class="page-center">
+    <div class="container">
+      <div class="title">Registration</div>
+      <form id="regForm" onsubmit="handleRegistrationSubmit(event)">
+        <div class="user-details">  
+          <div class="input-box">
+            <span class="details">Full Name</span>
+            <input type="text" id="nameInput" placeholder="Enter your name" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Username</span>
+            <input type="text" id="usernameInput" placeholder="Enter your username" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Email</span>
+            <input type="email" id="emailInput" placeholder="Enter your email" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Password</span>
+            <input type="password" id="passInput" placeholder="Enter your password" required>
+          </div>
+
+          <div class="input-box" style="width: 100%;">
+            <span class="details">Confirm Password</span>
+            <input type="password" id="confirmPassInput" placeholder="Confirm your password" required>
+          </div>
+        </div>
+
+        <div class="gender-details">
+          <span class="gender-title">Gender</span>
+          <div class="category">
+            <label>
+              <input type="radio" name="gender" value="Male" checked> Male 
+            </label>
+            <label>
+              <input type="radio" name="gender" value="Female"> Female 
+            </label>
+            <label>
+              <input type="radio" name="gender" value="Transgender"> Transgender 
+            </label>
+          </div>
+        </div>
+
+        <div class="button">
+          <input type="submit" value="Register">
+        </div>
+
+        <div class="form-sublinks">
+          Prefer the streamlined 3-step signup? <a href="register.html">Quick Register</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function handleRegistrationSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('nameInput').value.trim();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passInput').value;
+      const confirmPassword = document.getElementById('confirmPassInput').value;
+
+      if (password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+      }
+
+      const user = { name, email };
+      localStorage.setItem('aimock_user', JSON.stringify(user));
+      alert('Registration successful! Redirecting to Dashboard...');
+      window.location.href = 'dashboard.html';
+    }
+  </script>
     
 </body>
 </html>

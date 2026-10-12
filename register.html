@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - AI Mock Interviewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D82B6B'><path d='M12 2a5 5 0 0 0-5 5v1a4 4 0 0 0-3 3.87A4 4 0 0 0 7 16h1v2a3 3 0 0 0 3 3h2a3 3 0 0 0 3-3v-2h1a4 4 0 0 0 3-4.13A4 4 0 0 0 17 8V7a5 5 0 0 0-5-5z'/></svg>">
+</head>
+<body class="auth-page-body">
+
+  <!-- Top Navbar -->
+  <header class="app-header">
+    <a href="dashboard.html" class="brand-logo">
+      <div class="brand-icon">
+        <!-- Pink Brain SVG -->
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/>
+          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/>
+        </svg>
+      </div>
+      <span>AI Mock Interviewer</span>
+    </a>
+
+    <div class="header-right">
+      <div class="header-auth-link">
+        Already have an account? <a href="login.html" class="pink-link">Login</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Register Main Card -->
+  <main class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">Create Your Account</h1>
+      <p class="auth-subtitle">Start your journey towards a better career</p>
+
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <!-- Full Name Input -->
+        <div class="form-group">
+          <div class="input-wrapper">
+            <span class="input-prefix-icon">
+              <!-- User Icon -->
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <input 
+              type="text" 
+              id="regFullName" 
+              class="input-control" 
+              placeholder="Full Name" 
+              required 
+              autocomplete="name"
+            >
+          </div>
+        </div>
+
+        <!-- Email Address Input -->
+        <div class="form-group">
+          <div class="input-wrapper">
+            <span class="input-prefix-icon">
+              <!-- Mail Icon -->
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </span>
+            <input 
+              type="email" 
+              id="regEmail" 
+              class="input-control" 
+              placeholder="Email address" 
+              required 
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+          <div class="input-wrapper">
+            <span class="input-prefix-icon">
+              <!-- Lock Icon -->
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+            <input 
+              type="password" 
+              id="regPassword" 
+              class="input-control has-suffix" 
+              placeholder="Password" 
+              required 
+              autocomplete="new-password"
+            >
+            <button type="button" class="input-suffix-btn" onclick="togglePasswordVisibility('regPassword', this)" title="Toggle password visibility">
+              <!-- Eye Icon -->
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-primary" id="registerBtn">
+          Register
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      
+      btn.innerHTML = isPassword 
+        ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+            <line x1="2" x2="22" y1="2" y2="22"/>
+          </svg>`
+        : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>`;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          ${type === 'success' 
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />' 
+            : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+        </svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regFullName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+
+      if (!name || !email || !password) {
+        showToast('Please fill in all fields', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        showToast('Password should be at least 6 characters', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('registerBtn');
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const user = { name, email };
+        localStorage.setItem('aimock_user', JSON.stringify(user));
+        showToast('Account created successfully! Welcome aboard!', 'success');
+
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      }, 500);
+    }
+  </script>
+</body>
+</html>
