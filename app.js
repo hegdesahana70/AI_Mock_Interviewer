@@ -269,14 +269,46 @@ function switchTab(tabName) {
 }
 
 // Start Interview Flow
-function handleStartInterviewSetup() {
+async function handleStartInterviewSetup() {
   const roleSelect = document.getElementById('roleSelect');
   const difficultySelect = document.getElementById('difficultySelect');
 
   const role = roleSelect ? roleSelect.value : 'Software Developer';
   const difficulty = difficultySelect ? difficultySelect.value : 'Intermediate';
 
-  const questions = QUESTION_BANK[role] || QUESTION_BANK["Software Developer"];
+  const generateBtn = document.getElementById('btnStartInterview');
+  if (generateBtn) {
+    generateBtn.textContent = '✨ Generating with Gemini AI...';
+    generateBtn.disabled = true;
+  }
+
+  let questions = QUESTION_BANK[role] || QUESTION_BANK["Software Developer"];
+
+  const apiUrl = window.location.origin.includes('5000') 
+    ? '/api/interview/generate' 
+    : 'http://localhost:5000/api/interview/generate';
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, difficulty })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+        questions = data.questions;
+        showToast('✨ Gemini AI generated dynamic questions for you!', 'success');
+      }
+    }
+  } catch (err) {
+    console.log('Using standard question bank:', err.message);
+  } finally {
+    if (generateBtn) {
+      generateBtn.textContent = 'Generate Questions';
+      generateBtn.disabled = false;
+    }
+  }
 
   state.currentInterview = {
     role: role,
@@ -286,11 +318,6 @@ function handleStartInterviewSetup() {
     answers: {},
     startTime: Date.now()
   };
-
-  // Seed question 2 answer like the screenshot if Software Developer for demonstration
-  if (role === 'Software Developer') {
-    state.currentInterview.answers[1] = "I usually use try-catch blocks for async operations and also handle errors using error boundaries in React...";
-  }
 
   // Switch to interview session view
   showInterviewQuestion(0);
@@ -352,47 +379,87 @@ function handleNextQuestion() {
 }
 
 // Submit Interview and Calculate AI Results
-function submitInterview() {
+async function submitInterview() {
   const { role, difficulty, questions, answers } = state.currentInterview;
   
   // Show evaluating toast
-  showToast('AI is analyzing your responses...', 'success');
+  showToast('✨ Gemini AI is analyzing and scoring your responses...', 'success');
 
-  // Realistic Score Calculation
-  let totalLength = 0;
-  let answeredCount = 0;
-  const qaList = [];
+  const qaPairs = questions.map((q, idx) => ({
+    question: q,
+    userAnswer: answers[idx] || '(No answer provided)'
+  }));
 
-  questions.forEach((q, idx) => {
-    const ans = answers[idx] || '';
-    if (ans.trim().length > 0) {
-      answeredCount++;
-      totalLength += ans.length;
-    }
-
-    qaList.push({
-      question: `${idx + 1}. ${q}`,
-      answer: ans || '(No answer provided)',
-      critique: ans.length > 50 
-        ? "Good conceptual understanding with relevant keywords. Clear articulation of technical details."
-        : "Answer is brief. Adding concrete examples or practical edge cases would strengthen this response."
-    });
-  });
-
-  // Calculate scores (centered near 78% as in screenshot)
   let overallScore = 78;
   let technicalScore = 80;
   let communicationScore = 75;
   let problemSolvingScore = 70;
   let confidenceScore = 85;
+  let performanceReview = `You have a good understanding of core concepts, especially in ${role}. Try to work on your problem-solving approach and provide more detailed examples in your answers.`;
+  let evaluatedQaList = [];
 
-  if (answeredCount > 0) {
-    const base = Math.min(88, Math.max(65, Math.round(60 + (answeredCount * 5) + (totalLength / 60))));
-    overallScore = base;
-    technicalScore = Math.min(95, base + 2);
-    communicationScore = Math.min(95, base - 3);
-    problemSolvingScore = Math.min(95, base - 8);
-    confidenceScore = Math.min(95, base + 7);
+  const apiUrl = window.location.origin.includes('5000') 
+    ? '/api/interview/submit' 
+    : 'http://localhost:5000/api/interview/submit';
+
+  try {
+    const userId = state.currentUser?.id || '661ab123456789abcdef0123';
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, role, difficulty, qaPairs })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.report) {
+        overallScore = data.report.overallScore || overallScore;
+        performanceReview = data.report.performanceReview || performanceReview;
+        if (data.report.qaPairs && data.report.qaPairs.length > 0) {
+          evaluatedQaList = data.report.qaPairs.map((p, idx) => ({
+            question: `${idx + 1}. ${p.question}`,
+            answer: p.userAnswer,
+            critique: p.aiFeedback || 'Good conceptual understanding.'
+          }));
+        }
+        showToast('✨ Gemini AI evaluated your interview!', 'success');
+      }
+    }
+  } catch (err) {
+    console.log('Using local evaluation engine:', err.message);
+  }
+
+  if (evaluatedQaList.length === 0) {
+    let totalLength = 0;
+    let answeredCount = 0;
+    questions.forEach((q, idx) => {
+      const ans = answers[idx] || '';
+      if (ans.trim().length > 0) {
+        answeredCount++;
+        totalLength += ans.length;
+      }
+
+      evaluatedQaList.push({
+        question: `${idx + 1}. ${q}`,
+        answer: ans || '(No answer provided)',
+        critique: ans.length > 50 
+          ? "Good conceptual understanding with relevant keywords. Clear articulation of technical details."
+          : "Answer is brief. Adding concrete examples or practical edge cases would strengthen this response."
+      });
+    });
+
+    if (answeredCount > 0) {
+      const base = Math.min(88, Math.max(65, Math.round(60 + (answeredCount * 5) + (totalLength / 60))));
+      overallScore = base;
+      technicalScore = Math.min(95, base + 2);
+      communicationScore = Math.min(95, base - 3);
+      problemSolvingScore = Math.min(95, base - 8);
+      confidenceScore = Math.min(95, base + 7);
+    }
+  } else {
+    technicalScore = Math.min(95, Math.max(60, overallScore + 2));
+    communicationScore = Math.min(95, Math.max(60, overallScore - 3));
+    problemSolvingScore = Math.min(95, Math.max(60, overallScore - 5));
+    confidenceScore = Math.min(95, Math.max(60, overallScore + 4));
   }
 
   // Create result object
@@ -408,8 +475,8 @@ function submitInterview() {
       problemSolving: problemSolvingScore,
       confidence: confidenceScore
     },
-    feedback: `You have a good understanding of core concepts, especially in ${role}. Try to work on your problem-solving approach and provide more detailed examples in your answers.`,
-    qaList: qaList
+    feedback: performanceReview,
+    qaList: evaluatedQaList
   };
 
   state.lastCompletedResult = newResult;
