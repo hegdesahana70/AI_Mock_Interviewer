@@ -47,31 +47,23 @@ function loadUserData() {
 }
 
 async function loadHistoryData() {
-  const savedHistory = localStorage.getItem('aimock_history');
-  if (savedHistory) {
-    try {
-      state.history = JSON.parse(savedHistory);
-    } catch (e) {
-      state.history = [];
-    }
-  } else {
-    state.history = [];
-  }
+async function loadHistoryData() {
+  const uid = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email;
 
-  // Fetch real user history from backend
-  const uid = state.currentUser?.id || state.currentUser?.userId;
   if (uid) {
     try {
       const apiUrl = window.location.origin.includes('5000') 
-        ? `/api/interview/history/${uid}` 
-        : `http://localhost:5000/api/interview/history/${uid}`;
+        ? `/api/interview/history/${encodeURIComponent(uid)}` 
+        : `http://localhost:5000/api/interview/history/${encodeURIComponent(uid)}`;
       const res = await fetch(apiUrl);
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.history) && data.history.length > 0) {
+        if (data.success && Array.isArray(data.history)) {
           state.history = data.history.map(item => ({
             id: item._id,
-            date: new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            date: item.createdAt 
+              ? new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             role: item.role,
             difficulty: item.difficulty,
             score: item.overallScore,
@@ -83,17 +75,31 @@ async function loadHistoryData() {
             },
             feedback: item.performanceReview,
             qaList: (item.qaPairs || []).map((q, idx) => ({
-              question: `${idx + 1}. ${q.question}`,
+              question: q.question && q.question.startsWith(`${idx + 1}.`) ? q.question : `${idx + 1}. ${q.question}`,
               answer: q.userAnswer,
               critique: q.aiFeedback || 'Evaluated by AI'
             }))
           }));
           localStorage.setItem('aimock_history', JSON.stringify(state.history));
+          renderHistoryTable();
+          return;
         }
       }
     } catch (err) {
-      // offline fallback
+      console.warn('Could not fetch remote history, using local cache:', err.message);
     }
+  }
+
+  // Fallback to local storage if API is offline
+  const savedHistory = localStorage.getItem('aimock_history');
+  if (savedHistory) {
+    try {
+      state.history = JSON.parse(savedHistory);
+    } catch (e) {
+      state.history = [];
+    }
+  } else {
+    state.history = [];
   }
 
   renderHistoryTable();
@@ -187,6 +193,11 @@ function switchTab(tabName) {
   // Scroll to top
   const mainContent = document.querySelector('.main-content');
   if (mainContent) mainContent.scrollTop = 0;
+
+  // Refresh history dynamically whenever History tab is opened
+  if (tabName === 'history') {
+    loadHistoryData();
+  }
 }
 
 // Start Interview Flow
@@ -328,8 +339,10 @@ async function submitInterview() {
     ? '/api/interview/submit' 
     : 'http://localhost:5000/api/interview/submit';
 
+  let savedReportId = null;
+
   try {
-    const userId = state.currentUser?.id || '661ab123456789abcdef0123';
+    const userId = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email || 'anonymous';
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -338,6 +351,7 @@ async function submitInterview() {
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.report) {
+        savedReportId = data.report._id;
         overallScore = data.report.overallScore || overallScore;
         performanceReview = data.report.performanceReview || performanceReview;
         if (data.report.qaPairs && data.report.qaPairs.length > 0) {
@@ -347,7 +361,7 @@ async function submitInterview() {
             critique: p.aiFeedback || 'Good conceptual understanding.'
           }));
         }
-        showToast('✨ Gemini AI evaluated your interview!', 'success');
+        showToast('✨ Gemini AI evaluated and saved to your history!', 'success');
       }
     }
   } catch (err) {
@@ -390,7 +404,7 @@ async function submitInterview() {
 
   // Create result object
   const newResult = {
-    id: `hist-${Date.now()}`,
+    id: savedReportId || `hist-${Date.now()}`,
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     role: role,
     difficulty: difficulty,
