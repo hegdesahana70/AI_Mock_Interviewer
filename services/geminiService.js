@@ -2,9 +2,9 @@ const { GoogleGenAI } = require('@google/genai');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
 
-function withTimeout(promise, ms = 10000) {
+function withTimeout(promise, ms = 12000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
@@ -20,9 +20,11 @@ async function generateWithFallback(prompt) {
           model: model,
           contents: prompt,
         }),
-        10000
+        12000
       );
-      return response.text;
+      if (response && response.text) {
+        return response.text;
+      }
     } catch (err) {
       lastError = err;
       console.warn(`Model ${model} notice: ${err.message}, trying next model...`);

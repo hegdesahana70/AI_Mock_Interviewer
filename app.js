@@ -207,10 +207,13 @@ async function handleStartInterviewSetup() {
   const role = roleSelect ? roleSelect.value : 'Software Developer';
   const difficulty = difficultySelect ? difficultySelect.value : 'Intermediate';
 
-  const generateBtn = document.getElementById('btnStartInterview');
+  const generateBtn = document.getElementById('btnGenerateQuestions') || document.querySelector('.btn-generate') || document.getElementById('btnStartInterview');
+  const generateText = document.getElementById('btnGenerateText') || generateBtn?.querySelector('span');
+
   if (generateBtn) {
-    generateBtn.textContent = '✨ Generating with Gemini AI...';
+    if (generateText) generateText.textContent = '✨ Generating with Gemini AI...';
     generateBtn.disabled = true;
+    generateBtn.style.opacity = '0.7';
   }
 
   let questions = [];
@@ -236,8 +239,9 @@ async function handleStartInterviewSetup() {
     console.warn('Backend interview generation error:', err.message);
   } finally {
     if (generateBtn) {
-      generateBtn.textContent = 'Generate Questions';
+      if (generateText) generateText.textContent = 'Generate Questions';
       generateBtn.disabled = false;
+      generateBtn.style.opacity = '1';
     }
   }
 
