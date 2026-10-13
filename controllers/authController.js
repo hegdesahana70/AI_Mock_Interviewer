@@ -12,20 +12,7 @@ function ensureDataFile() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(USERS_FILE)) {
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync('password123', salt);
-    const defaultUsers = [
-      {
-        _id: 'local-student-001',
-        fullName: 'Student',
-        username: 'student',
-        email: 'student@example.com',
-        password: hash,
-        gender: 'male',
-        createdAt: new Date().toISOString()
-      }
-    ];
-    fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
+    fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
   }
 }
 

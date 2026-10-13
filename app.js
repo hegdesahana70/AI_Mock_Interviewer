@@ -2,127 +2,6 @@
  * AI Mock Interviewer - Main Application Logic
  */
 
-// Default Seed Data
-const DEFAULT_USER = {
-  name: 'Student',
-  email: 'student@example.com'
-};
-
-const DEFAULT_HISTORY = [
-  {
-    id: 'hist-1',
-    date: 'Apr 28, 2025',
-    role: 'Software Developer',
-    difficulty: 'Intermediate',
-    score: 78,
-    metrics: { technical: 80, communication: 75, problemSolving: 70, confidence: 85 },
-    feedback: "You have a good understanding of core concepts, especially in JavaScript and React. Try to work on your problem-solving approach and provide more detailed examples in your answers.",
-    qaList: [
-      {
-        question: "1. What is the difference between Let, const, and var in JavaScript? When would you use each?",
-        answer: "var is function-scoped and hoisted. let and const are block-scoped. const cannot be reassigned. I use const by default and let when values must mutate.",
-        critique: "Accurate explanation of scoping and hoisting. Good best-practice recommendation."
-      },
-      {
-        question: "2. How do you handle error handling in a React application? Give an example.",
-        answer: "I usually use try-catch blocks for async operations and also handle errors using error boundaries in React components to prevent UI crashing.",
-        critique: "Well structured. Mentioning Error Boundaries and async try-catch demonstrates practical React experience."
-      },
-      {
-        question: "3. What are promises in JavaScript and how do they differ from async/await?",
-        answer: "Promises represent asynchronous values with pending, fulfilled, or rejected states. Async/await is syntactic sugar over promises making async code look synchronous.",
-        critique: "Clear explanation of states and syntactic sugar distinction."
-      },
-      {
-        question: "4. Explain the concept of RESTful APIs and common HTTP methods.",
-        answer: "REST is an architectural style using standard HTTP verbs like GET for reading, POST for creating, PUT/PATCH for updating, and DELETE for removing resources.",
-        critique: "Strong definition of HTTP methods and resource-oriented modeling."
-      },
-      {
-        question: "5. How do you optimize frontend web application performance?",
-        answer: "Code splitting with lazy loading, compressing image assets, minimizing bundles, memoization with useMemo/useCallback, and using browser caching.",
-        critique: "Comprehensive list of frontend performance optimization techniques."
-      }
-    ]
-  },
-  {
-    id: 'hist-2',
-    date: 'Apr 20, 2025',
-    role: 'Data Analyst',
-    difficulty: 'Beginner',
-    score: 85,
-    metrics: { technical: 88, communication: 82, problemSolving: 85, confidence: 85 },
-    feedback: "Excellent understanding of SQL queries and data visualization basics. Communication was structured and concise.",
-    qaList: []
-  },
-  {
-    id: 'hist-3',
-    date: 'Apr 18, 2025',
-    role: 'Frontend Developer',
-    difficulty: 'Intermediate',
-    score: 72,
-    metrics: { technical: 75, communication: 70, problemSolving: 68, confidence: 75 },
-    feedback: "Solid foundation in CSS Flexbox/Grid and JavaScript. Expand more on state management and accessibility (a11y).",
-    qaList: []
-  },
-  {
-    id: 'hist-4',
-    date: 'Apr 15, 2025',
-    role: 'Backend Developer',
-    difficulty: 'Advanced',
-    score: 68,
-    metrics: { technical: 70, communication: 65, problemSolving: 65, confidence: 72 },
-    feedback: "Good coverage of database indexing and microservices, but dive deeper into concurrency control and distributed caching.",
-    qaList: []
-  }
-];
-
-// Comprehensive Question Banks by Role
-const QUESTION_BANK = {
-  "Software Developer": [
-    "What is the difference between Let, const, and var in JavaScript? When would you use each?",
-    "How do you handle error handling in a React application? Give an example.",
-    "What are promises in JavaScript and how do they differ from async/await?",
-    "Explain the concept of RESTful APIs and common HTTP methods.",
-    "How do you optimize frontend web application performance?"
-  ],
-  "Frontend Developer": [
-    "Explain the Virtual DOM in React and how reconciliation works.",
-    "What is the difference between CSS Grid and Flexbox, and when would you pick each?",
-    "How do you prevent unnecessary re-renders in modern React apps?",
-    "What are Web Vitals and how do you improve Largest Contentful Paint (LCP)?",
-    "How do you implement accessible UI components following WAI-ARIA guidelines?"
-  ],
-  "Backend Developer": [
-    "Explain how database indexes work and when indexing might harm performance.",
-    "What is the difference between horizontal and vertical database scaling?",
-    "How do you design a secure JWT authentication flow with refresh tokens?",
-    "Explain the CAP theorem and trade-offs in distributed database systems.",
-    "How would you prevent SQL Injection and Cross-Site Scripting (XSS) in an API?"
-  ],
-  "Data Analyst": [
-    "What is the difference between INNER JOIN, LEFT JOIN, and FULL OUTER JOIN in SQL?",
-    "How do you handle missing or duplicate values in a large dataset before analysis?",
-    "Explain the difference between correlation and causation with an example.",
-    "How do you choose between a bar chart, line chart, and scatter plot for business insights?",
-    "What are window functions in SQL and when would you use ROW_NUMBER() vs RANK()?"
-  ],
-  "Full Stack Developer": [
-    "Describe end-to-end architecture from browser request to database response.",
-    "How do you handle state synchronization between client and server?",
-    "Compare Server-Side Rendering (SSR) with Client-Side Rendering (CSR).",
-    "How do you structure database migrations in a production deployment?",
-    "What strategies do you use for logging, monitoring, and error tracking in full-stack apps?"
-  ],
-  "DevOps Engineer": [
-    "What are the core stages of a CI/CD pipeline and how do you ensure zero-downtime deployments?",
-    "Explain the difference between containers (Docker) and virtual machines.",
-    "How does Kubernetes handle self-healing and pod replica management?",
-    "What is Infrastructure as Code (IaC) and what are the benefits of Terraform?",
-    "How do you implement secrets management and zero-trust security in the cloud?"
-  ]
-};
-
 // Global App State
 let state = {
   currentUser: null,
@@ -154,33 +33,75 @@ function loadUserData() {
     try {
       state.currentUser = JSON.parse(savedUser);
     } catch (e) {
-      state.currentUser = DEFAULT_USER;
+      state.currentUser = null;
     }
-  } else {
-    state.currentUser = DEFAULT_USER;
-    localStorage.setItem('aimock_user', JSON.stringify(DEFAULT_USER));
   }
+
+  // Redirect to login if not authenticated
+  if (!state.currentUser) {
+    window.location.href = 'login.html';
+    return;
+  }
+
   updateUserUI();
 }
 
-function loadHistoryData() {
+async function loadHistoryData() {
   const savedHistory = localStorage.getItem('aimock_history');
   if (savedHistory) {
     try {
       state.history = JSON.parse(savedHistory);
     } catch (e) {
-      state.history = DEFAULT_HISTORY;
+      state.history = [];
     }
   } else {
-    state.history = DEFAULT_HISTORY;
-    localStorage.setItem('aimock_history', JSON.stringify(DEFAULT_HISTORY));
+    state.history = [];
   }
+
+  // Fetch real user history from backend
+  const uid = state.currentUser?.id || state.currentUser?.userId;
+  if (uid) {
+    try {
+      const apiUrl = window.location.origin.includes('5000') 
+        ? `/api/interview/history/${uid}` 
+        : `http://localhost:5000/api/interview/history/${uid}`;
+      const res = await fetch(apiUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.history) && data.history.length > 0) {
+          state.history = data.history.map(item => ({
+            id: item._id,
+            date: new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            role: item.role,
+            difficulty: item.difficulty,
+            score: item.overallScore,
+            metrics: {
+              technical: Math.min(95, Math.max(60, item.overallScore + 2)),
+              communication: Math.min(95, Math.max(60, item.overallScore - 3)),
+              problemSolving: Math.min(95, Math.max(60, item.overallScore - 5)),
+              confidence: Math.min(95, Math.max(60, item.overallScore + 4))
+            },
+            feedback: item.performanceReview,
+            qaList: (item.qaPairs || []).map((q, idx) => ({
+              question: `${idx + 1}. ${q.question}`,
+              answer: q.userAnswer,
+              critique: q.aiFeedback || 'Evaluated by AI'
+            }))
+          }));
+          localStorage.setItem('aimock_history', JSON.stringify(state.history));
+        }
+      }
+    } catch (err) {
+      // offline fallback
+    }
+  }
+
   renderHistoryTable();
 }
 
 function updateUserUI() {
-  const name = state.currentUser?.name || 'Student';
-  const email = state.currentUser?.email || 'student@example.com';
+  const name = state.currentUser?.name || state.currentUser?.fullName || 'User';
+  const email = state.currentUser?.email || '';
 
   const userGreetingEl = document.getElementById('userGreetingName');
   if (userGreetingEl) userGreetingEl.textContent = name;
@@ -282,7 +203,7 @@ async function handleStartInterviewSetup() {
     generateBtn.disabled = true;
   }
 
-  let questions = QUESTION_BANK[role] || QUESTION_BANK["Software Developer"];
+  let questions = [];
 
   const apiUrl = window.location.origin.includes('5000') 
     ? '/api/interview/generate' 
@@ -298,16 +219,21 @@ async function handleStartInterviewSetup() {
       const data = await res.json();
       if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
         questions = data.questions;
-        showToast('✨ Gemini AI generated dynamic questions for you!', 'success');
+        showToast('✨ Gemini AI dynamically generated your questions!', 'success');
       }
     }
   } catch (err) {
-    console.log('Using standard question bank:', err.message);
+    console.warn('Backend interview generation error:', err.message);
   } finally {
     if (generateBtn) {
       generateBtn.textContent = 'Generate Questions';
       generateBtn.disabled = false;
     }
+  }
+
+  if (questions.length === 0) {
+    showToast('Failed to generate AI questions. Please verify your server is running.', 'error');
+    return;
   }
 
   state.currentInterview = {
@@ -526,6 +452,17 @@ function renderHistoryTable() {
   if (!tbody) return;
 
   tbody.innerHTML = '';
+
+  if (state.history.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td colspan="5" style="text-align: center; padding: 32px; color: #9da3af;">
+        No interview sessions yet. Click "Start New Interview" to begin your first AI mock session!
+      </td>
+    `;
+    tbody.appendChild(tr);
+    return;
+  }
 
   state.history.forEach(item => {
     const tr = document.createElement('tr');
