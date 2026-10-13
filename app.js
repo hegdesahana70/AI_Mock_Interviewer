@@ -47,7 +47,6 @@ function loadUserData() {
 }
 
 async function loadHistoryData() {
-async function loadHistoryData() {
   const uid = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email;
 
   if (uid) {
