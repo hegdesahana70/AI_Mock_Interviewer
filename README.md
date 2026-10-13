@@ -66,38 +66,70 @@ A modern, responsive, and intuitive AI-powered mock interview preparation platfo
 
 ```
 AI_Mock_Interviewer/
-├── index.html              # Entry router (redirects to dashboard or login)
-├── login.html              # Screen 1: Login page
-├── register.html           # Screen 2: Streamlined 3-step registration
-├── registration_form.html  # Enhanced original multi-field registration
-├── dashboard.html          # Screens 3–9: Full interactive application
-├── style.css               # Main theme stylesheet (dark & #D82B6B pink palette)
+├── server.js               # Express 5 backend server (Port 5000, static file serving)
+├── config/
+│   └── db.js               # MongoDB connection with Mongoose
+├── models/
+│   ├── User.js             # User schema (fullName, username, email, password, gender)
+│   └── Interview.js        # Interview report schema (userId, role, score, qaPairs)
+├── controllers/
+│   ├── authController.js   # Registration, login, profile endpoints
+│   └── interviewController.js # AI question generation & answer evaluation
+├── routes/
+│   ├── authRoutes.js       # /api/auth routes (register, login, profile)
+│   └── interviewRoutes.js  # /api/interview routes (generate, submit, history)
+├── services/
+│   └── geminiService.js    # Google GenAI (gemini-2.5-flash) question generation & evaluation
+├── .env.example            # Environment variables template (PORT, MONGO_URI, GEMINI_API_KEY)
+├── index.html              # Entry router (redirects to login)
+├── login.html              # Login page with AI coach robot illustration
+├── register.html           # Streamlined 3-step registration form
+├── registration_form.html  # Multi-field detailed registration form
+├── dashboard.html          # Full interactive platform (Dashboard, Interview, History, Profile)
+├── style.css               # Main application stylesheet (#D82B6B pink & dark charcoal)
 ├── style1.css              # Stylesheet for registration_form.html
-├── app.js                  # Core JavaScript (interview engine, scoring, auth, speech)
-└── README.md               # Documentation
+├── app.js                  # Frontend client engine (voice recognition, question flow, scoring)
+├── package.json            # Node.js dependencies and start script
+└── README.md               # Project documentation
 ```
 
 ---
 
 ## 🚀 How to Run
 
-You don't need any complex build setup or database. You can run it immediately using any of these methods:
+### Method 1: Full-Stack (Backend API + Database + AI)
 
-### Option 1: Direct File Open
-Simply double-click `login.html` or `index.html` in your file explorer to open it in any web browser.
+1. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
 
-### Option 2: VS Code Live Server
-Right-click `index.html` or `login.html` and select **"Open with Live Server"**.
+2. **Configure Environment Variables:**
+   Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your credentials in `.env`:
+   - `MONGO_URI`: Your MongoDB Atlas connection string
+   - `GEMINI_API_KEY`: Your Google Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+   - `PORT`: `5000`
 
-### Option 3: Python or Node Server
-```bash
-# Python
-python -m http.server 8000
+3. **Start the Express Server:**
+   ```bash
+   npm start
+   ```
 
-# or Node (npx)
-npx serve .
-```
-Then navigate to `http://localhost:8000`.
+4. **Open in Browser:**
+   Visit **`http://localhost:5000`** in your browser. The Express server serves both the frontend web app and backend API routes!
+
+---
+
+### Method 2: Frontend-Only Quick Preview
+
+You can open the frontend immediately without a backend database:
+- Simply double-click `login.html` or `index.html` to open in Google Chrome or Edge.
+- Or use VS Code Live Server / `npx serve .`.
+- The frontend features automatic fallback mode so all UI controls, mock interviews, speech-to-text, and reports work seamlessly out-of-the-box!
 
 ---
 
@@ -107,3 +139,4 @@ Then navigate to `http://localhost:8000`.
 - **Primary Brand Color**: `#D82B6B` (Berry Pink)
 - **Hover / Active State**: `#e03977` / `#be205a`
 - **Font**: Inter & Poppins
+

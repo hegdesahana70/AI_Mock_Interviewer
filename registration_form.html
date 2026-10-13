@@ -84,22 +84,48 @@
   </div>
 
   <script>
-    function handleRegistrationSubmit(e) {
+    async function handleRegistrationSubmit(e) {
       e.preventDefault();
-      const name = document.getElementById('nameInput').value.trim();
+      const fullName = document.getElementById('nameInput').value.trim();
+      const username = document.getElementById('usernameInput').value.trim();
       const email = document.getElementById('emailInput').value.trim();
       const password = document.getElementById('passInput').value;
       const confirmPassword = document.getElementById('confirmPassInput').value;
+      const genderEl = document.querySelector('input[name="gender"]:checked');
+      const gender = genderEl ? genderEl.value.toLowerCase() : 'male';
 
       if (password !== confirmPassword) {
         alert('Passwords do not match!');
         return;
       }
 
-      const user = { name, email };
-      localStorage.setItem('aimock_user', JSON.stringify(user));
-      alert('Registration successful! Redirecting to Dashboard...');
-      window.location.href = 'dashboard.html';
+      const apiUrl = window.location.origin.includes('5000') 
+        ? '/api/auth/register' 
+        : 'http://localhost:5000/api/auth/register';
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, username, email, password, gender })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const user = { id: data.userId, name: fullName, email };
+          localStorage.setItem('aimock_user', JSON.stringify(user));
+          alert('Registration successful! Redirecting to Dashboard...');
+          window.location.href = 'dashboard.html';
+          return;
+        } else {
+          alert(data.error || data.message || 'Registration failed');
+          return;
+        }
+      } catch (err) {
+        const user = { name: fullName, email };
+        localStorage.setItem('aimock_user', JSON.stringify(user));
+        alert('Registration successful! Redirecting to Dashboard...');
+        window.location.href = 'dashboard.html';
+      }
     }
   </script>
     

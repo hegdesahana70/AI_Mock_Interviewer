@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
@@ -12,6 +13,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Serve static frontend assets
+app.use(express.static(path.join(__dirname)));
+
 // Connect to Database
 connectDB();
 
@@ -20,8 +24,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/interview', interviewRoutes);
 
 // Base Route
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'AI Mock Interviewer Backend is Up and Running!' });
+});
+
 app.get('/', (req, res) => {
-  res.send('AI Mock Interviewer Backend is Up and Running!');
+  res.sendFile(path.join(__dirname, 'login.html'));
 });
 
 const PORT = process.env.PORT || 5000;

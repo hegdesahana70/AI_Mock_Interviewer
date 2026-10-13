@@ -157,7 +157,7 @@
       }, 3000);
     }
 
-    function handleRegister(e) {
+    async function handleRegister(e) {
       e.preventDefault();
       const name = document.getElementById('regFullName').value.trim();
       const email = document.getElementById('regEmail').value.trim();
@@ -177,7 +177,34 @@
       btn.textContent = 'Creating account...';
       btn.disabled = true;
 
-      setTimeout(() => {
+      const apiUrl = window.location.origin.includes('5000') 
+        ? '/api/auth/register' 
+        : 'http://localhost:5000/api/auth/register';
+
+      try {
+        const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName: name, username, email, password, gender: 'male' })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const user = { id: data.userId, name, email };
+          localStorage.setItem('aimock_user', JSON.stringify(user));
+          showToast('Account created successfully! Welcome aboard!', 'success');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+          return;
+        } else {
+          showToast(data.error || data.message || 'Registration failed', 'error');
+          btn.textContent = 'Register';
+          btn.disabled = false;
+          return;
+        }
+      } catch (err) {
+        // Backend offline fallback
         const user = { name, email };
         localStorage.setItem('aimock_user', JSON.stringify(user));
         showToast('Account created successfully! Welcome aboard!', 'success');
@@ -185,7 +212,7 @@
         setTimeout(() => {
           window.location.href = 'dashboard.html';
         }, 800);
-      }, 500);
+      }
     }
   </script>
 </body>

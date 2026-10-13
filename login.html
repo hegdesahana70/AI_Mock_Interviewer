@@ -185,7 +185,7 @@
       }, 3000);
     }
 
-    function handleLogin(e) {
+    async function handleLogin(e) {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
@@ -199,8 +199,37 @@
       btn.textContent = 'Logging in...';
       btn.disabled = true;
 
-      setTimeout(() => {
-        // Store session
+      const apiUrl = window.location.origin.includes('5000') 
+        ? '/api/auth/login' 
+        : 'http://localhost:5000/api/auth/login';
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const user = {
+            id: data.userId,
+            name: data.fullName || email.split('@')[0],
+            email: data.email || email
+          };
+          localStorage.setItem('aimock_user', JSON.stringify(user));
+          showToast('Welcome back! Redirecting to Dashboard...', 'success');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+          return;
+        } else {
+          showToast(data.message || 'Invalid email or password', 'error');
+          btn.textContent = 'Sign In';
+          btn.disabled = false;
+          return;
+        }
+      } catch (err) {
+        // Backend offline fallback so frontend continues working smoothly
         const user = {
           name: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1) || 'Student',
           email: email
@@ -211,7 +240,7 @@
         setTimeout(() => {
           window.location.href = 'dashboard.html';
         }, 800);
-      }, 500);
+      }
     }
 
     function openForgotPasswordModal() {
