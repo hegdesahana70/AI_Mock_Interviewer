@@ -17,6 +17,7 @@ const interviewSchema = new mongoose.Schema({
       question: String,
       userAnswer: String,
       aiFeedback: String,
+      idealAnswer: String,
       score: Number
     }
   ]

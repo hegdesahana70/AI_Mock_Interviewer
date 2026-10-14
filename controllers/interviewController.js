@@ -66,7 +66,13 @@ exports.submitInterview = async (req, res) => {
         confidence: Number(evaluation.overallScore) || 0
       },
       performanceReview: evaluation.performanceReview || 'Evaluation completed.',
-      qaPairs: evaluation.evaluatedQaPairs || []
+      qaPairs: (evaluation.evaluatedQaPairs || []).map(p => ({
+        question: p.question || '',
+        userAnswer: p.userAnswer || '',
+        aiFeedback: p.aiFeedback || '',
+        idealAnswer: p.idealAnswer || '',
+        score: Number(p.score) || 0
+      }))
     };
 
     let report = null;

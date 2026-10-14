@@ -70,6 +70,7 @@ Provide a strict, professional evaluation and return ONLY a valid JSON object wi
       "question": "<the question>",
       "userAnswer": "<the candidate's answer>",
       "aiFeedback": "<specific, actionable feedback on this individual answer>",
+      "idealAnswer": "<a comprehensive, technically precise model answer detailing the exact concepts, key terms, and architecture that an interviewer expects for this question>",
       "score": <score from 0 to 100 for this answer>
     }
   ]

@@ -76,7 +76,9 @@ async function loadHistoryData() {
             qaList: (item.qaPairs || []).map((q, idx) => ({
               question: q.question && q.question.startsWith(`${idx + 1}.`) ? q.question : `${idx + 1}. ${q.question}`,
               answer: q.userAnswer,
-              critique: q.aiFeedback || 'Evaluated by AI'
+              critique: q.aiFeedback || 'Evaluated by AI',
+              idealAnswer: q.idealAnswer || '',
+              score: q.score != null ? q.score : null
             }))
           }));
           localStorage.setItem('aimock_history', JSON.stringify(state.history));
@@ -348,7 +350,9 @@ async function submitInterview() {
       const evaluatedQaList = (rep.qaPairs || []).map((p, idx) => ({
         question: p.question && p.question.startsWith(`${idx + 1}.`) ? p.question : `${idx + 1}. ${p.question}`,
         answer: p.userAnswer,
-        critique: p.aiFeedback || 'Evaluated by Gemini AI'
+        critique: p.aiFeedback || 'Evaluated by Gemini AI',
+        idealAnswer: p.idealAnswer || '',
+        score: p.score != null ? p.score : null
       }));
 
       const newResult = {
@@ -470,10 +474,31 @@ function displayReportModal(result) {
       result.qaList.forEach(item => {
         const div = document.createElement('div');
         div.className = 'report-item';
+
+        const scoreBadge = item.score != null 
+          ? `<span class="report-item-score-badge">Score: ${item.score}/100</span>` 
+          : '';
+
+        const idealSection = item.idealAnswer ? `
+          <div class="report-ideal-ans">
+            <div class="report-ideal-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a5 5 0 0 0-5 5v1a4 4 0 0 0-3 3.87A4 4 0 0 0 7 16h1v2a3 3 0 0 0 3 3h2a3 3 0 0 0 3-3v-2h1a4 4 0 0 0 3-4.13A4 4 0 0 0 17 8V7a5 5 0 0 0-5-5z"/>
+              </svg>
+              <span>Ideal / Model Answer (Expected by Interviewer)</span>
+            </div>
+            <div class="report-ideal-text">${item.idealAnswer}</div>
+          </div>
+        ` : '';
+
         div.innerHTML = `
-          <div class="report-item-question">${item.question}</div>
-          <div class="report-user-ans"><strong>Your Answer:</strong> ${item.answer}</div>
+          <div class="report-item-header">
+            <div class="report-item-question">${item.question}</div>
+            ${scoreBadge}
+          </div>
+          <div class="report-user-ans"><strong>Your Answer:</strong> ${item.answer || '(No answer provided)'}</div>
           <div class="report-ai-critique">💡 <strong>AI Evaluation:</strong> ${item.critique}</div>
+          ${idealSection}
         `;
         container.appendChild(div);
       });
