@@ -151,7 +151,7 @@ function setupEventListeners() {
   if (answerTextarea) {
     answerTextarea.addEventListener('input', (e) => {
       const len = e.target.value.length;
-      document.getElementById('charCount').textContent = `${len}/500`;
+      document.getElementById('charCount').textContent = `${len}/2000`;
       
       const qIndex = state.currentInterview.currentIndex;
       state.currentInterview.answers[qIndex] = e.target.value;
@@ -284,7 +284,7 @@ function showInterviewQuestion(index) {
   const currentAns = state.currentInterview.answers[index] || '';
   const answerInput = document.getElementById('answerInput');
   answerInput.value = currentAns;
-  document.getElementById('charCount').textContent = `${currentAns.length}/500`;
+  document.getElementById('charCount').textContent = `${currentAns.length}/2000`;
 
   // Prev / Next button state
   const prevBtn = document.getElementById('btnPrevQuestion');
@@ -581,8 +581,8 @@ function toggleSpeechInput() {
         : activeSpeech;
 
       // Update textarea in real time!
-      answerInput.value = updatedText.slice(0, 500);
-      document.getElementById('charCount').textContent = `${answerInput.value.length}/500`;
+      answerInput.value = updatedText.slice(0, 2000);
+      document.getElementById('charCount').textContent = `${answerInput.value.length}/2000`;
 
       // Save to state
       const qIndex = state.currentInterview.currentIndex;
