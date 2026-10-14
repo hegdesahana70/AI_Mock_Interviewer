@@ -227,17 +227,10 @@
           return;
         }
       } catch (err) {
-        // Backend offline fallback so frontend continues working smoothly
-        const user = {
-          name: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1) || 'Student',
-          email: email
-        };
-        localStorage.setItem('aimock_user', JSON.stringify(user));
-        showToast('Welcome back! Redirecting to Dashboard...', 'success');
-
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 800);
+        console.error('Login error:', err);
+        showToast('Cannot connect to server. Please ensure your backend server is running on port 5000.', 'error');
+        btn.textContent = 'Login';
+        btn.disabled = false;
       }
     }
 

@@ -5,6 +5,12 @@ const interviewSchema = new mongoose.Schema({
   role: { type: String, required: true },
   difficulty: { type: String, required: true },
   overallScore: { type: Number, required: true },
+  metrics: {
+    technical: { type: Number, default: 0 },
+    communication: { type: Number, default: 0 },
+    problemSolving: { type: Number, default: 0 },
+    confidence: { type: Number, default: 0 }
+  },
   performanceReview: { type: String },
   qaPairs: [
     {

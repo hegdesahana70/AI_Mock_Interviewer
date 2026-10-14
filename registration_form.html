@@ -121,10 +121,8 @@
           return;
         }
       } catch (err) {
-        const user = { name: fullName, email };
-        localStorage.setItem('aimock_user', JSON.stringify(user));
-        alert('Registration successful! Redirecting to Dashboard...');
-        window.location.href = 'dashboard.html';
+        console.error('Registration error:', err);
+        alert('Cannot connect to server. Please ensure your backend server is running on port 5000.');
       }
     }
   </script>

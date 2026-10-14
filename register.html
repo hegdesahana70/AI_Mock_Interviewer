@@ -204,14 +204,10 @@
           return;
         }
       } catch (err) {
-        // Backend offline fallback
-        const user = { name, email };
-        localStorage.setItem('aimock_user', JSON.stringify(user));
-        showToast('Account created successfully! Welcome aboard!', 'success');
-
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 800);
+        console.error('Registration error:', err);
+        showToast('Cannot connect to server. Please ensure your backend server is running on port 5000.', 'error');
+        btn.textContent = 'Register';
+        btn.disabled = false;
       }
     }
   </script>

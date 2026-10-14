@@ -4,10 +4,10 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
 
-function withTimeout(promise, ms = 12000) {
+function withTimeout(promise, ms = 25000) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('AI generation timed out')), ms))
   ]);
 }
 
@@ -20,14 +20,14 @@ async function generateWithFallback(prompt) {
           model: model,
           contents: prompt,
         }),
-        12000
+        25000
       );
       if (response && response.text) {
         return response.text;
       }
     } catch (err) {
       lastError = err;
-      console.warn(`Model ${model} notice: ${err.message}, trying next model...`);
+      console.warn(`Model ${model} note: ${err.message}, trying next model...`);
     }
   }
   throw lastError;
@@ -42,19 +42,39 @@ function extractJSON(text) {
   return JSON.parse(clean);
 }
 
-// Generate Questions dynamically based on role and difficulty
+// Generate Questions strictly and dynamically from Gemini AI
 async function generateAIQuestions(role, difficulty) {
-  const prompt = `Generate 3 technical interview questions for a ${difficulty} level ${role}. Return the response strictly as a JSON array of strings, with no extra markdown formatting or text.`;
+  const prompt = `You are an expert technical interviewer. Generate 3 unique and challenging technical interview questions for a candidate applying for a ${difficulty} level ${role} role. Return ONLY a valid JSON array of strings containing the questions, without any markdown formatting or extra text. Example format: ["Question 1", "Question 2", "Question 3"]`;
   const raw = await generateWithFallback(prompt);
   return extractJSON(raw);
 }
 
-// Evaluate user answers and provide scores/feedback
+// Evaluate candidate answers dynamically with Gemini AI
 async function evaluateAIPerformance(role, qaPairs) {
-  const prompt = `Evaluate the following interview answers for a ${role} role. 
-  Q&A Data: ${JSON.stringify(qaPairs)}
-  Provide an overall score out of 100, a detailed performance review summary, and individual feedback/scores for each Q&A pair. 
-  Return strictly as a JSON object with keys: overallScore (Number), performanceReview (String), and evaluatedQaPairs (Array of objects with question, userAnswer, aiFeedback, score). No markdown code blocks.`;
+  const prompt = `You are an expert technical hiring manager evaluating an interview for a ${role} position.
+Candidate Responses:
+${JSON.stringify(qaPairs, null, 2)}
+
+Provide a strict, professional evaluation and return ONLY a valid JSON object with the following schema:
+{
+  "overallScore": <number between 0 and 100 based on answer accuracy and completeness>,
+  "metrics": {
+    "technical": <number between 0 and 100 reflecting depth of technical domain knowledge>,
+    "communication": <number between 0 and 100 reflecting clarity, structure, and conciseness>,
+    "problemSolving": <number between 0 and 100 reflecting analytical reasoning and edge case handling>,
+    "confidence": <number between 0 and 100 reflecting professional tone, assertiveness, and completeness>
+  },
+  "performanceReview": "<A comprehensive, tailored paragraph reviewing the candidate's performance, strengths, and specific areas for technical growth>",
+  "evaluatedQaPairs": [
+    {
+      "question": "<the question>",
+      "userAnswer": "<the candidate's answer>",
+      "aiFeedback": "<specific, actionable feedback on this individual answer>",
+      "score": <score from 0 to 100 for this answer>
+    }
+  ]
+}
+Return strictly the JSON object with no markdown backticks.`;
 
   const raw = await generateWithFallback(prompt);
   return extractJSON(raw);

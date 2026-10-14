@@ -66,11 +66,11 @@ async function loadHistoryData() {
             role: item.role,
             difficulty: item.difficulty,
             score: item.overallScore,
-            metrics: {
-              technical: Math.min(95, Math.max(60, item.overallScore + 2)),
-              communication: Math.min(95, Math.max(60, item.overallScore - 3)),
-              problemSolving: Math.min(95, Math.max(60, item.overallScore - 5)),
-              confidence: Math.min(95, Math.max(60, item.overallScore + 4))
+            metrics: item.metrics || {
+              technical: item.overallScore || 0,
+              communication: item.overallScore || 0,
+              problemSolving: item.overallScore || 0,
+              confidence: item.overallScore || 0
             },
             feedback: item.performanceReview,
             qaList: (item.qaPairs || []).map((q, idx) => ({
@@ -330,19 +330,9 @@ async function submitInterview() {
     userAnswer: answers[idx] || '(No answer provided)'
   }));
 
-  let overallScore = 78;
-  let technicalScore = 80;
-  let communicationScore = 75;
-  let problemSolvingScore = 70;
-  let confidenceScore = 85;
-  let performanceReview = `You have a good understanding of core concepts, especially in ${role}. Try to work on your problem-solving approach and provide more detailed examples in your answers.`;
-  let evaluatedQaList = [];
-
   const apiUrl = window.location.origin.includes('5000') 
     ? '/api/interview/submit' 
     : 'http://localhost:5000/api/interview/submit';
-
-  let savedReportId = null;
 
   try {
     const userId = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email || 'anonymous';
@@ -351,87 +341,50 @@ async function submitInterview() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, role, difficulty, qaPairs })
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.report) {
-        savedReportId = data.report._id;
-        overallScore = data.report.overallScore || overallScore;
-        performanceReview = data.report.performanceReview || performanceReview;
-        if (data.report.qaPairs && data.report.qaPairs.length > 0) {
-          evaluatedQaList = data.report.qaPairs.map((p, idx) => ({
-            question: `${idx + 1}. ${p.question}`,
-            answer: p.userAnswer,
-            critique: p.aiFeedback || 'Good conceptual understanding.'
-          }));
-        }
-        showToast('✨ Gemini AI evaluated and saved to your history!', 'success');
-      }
+    
+    const data = await res.json();
+    if (res.ok && data.success && data.report) {
+      const rep = data.report;
+      const evaluatedQaList = (rep.qaPairs || []).map((p, idx) => ({
+        question: p.question && p.question.startsWith(`${idx + 1}.`) ? p.question : `${idx + 1}. ${p.question}`,
+        answer: p.userAnswer,
+        critique: p.aiFeedback || 'Evaluated by Gemini AI'
+      }));
+
+      const newResult = {
+        id: rep._id || `hist-${Date.now()}`,
+        date: rep.createdAt 
+          ? new Date(rep.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        role: rep.role || role,
+        difficulty: rep.difficulty || difficulty,
+        score: rep.overallScore,
+        metrics: rep.metrics || {
+          technical: rep.overallScore,
+          communication: rep.overallScore,
+          problemSolving: rep.overallScore,
+          confidence: rep.overallScore
+        },
+        feedback: rep.performanceReview || 'Evaluation complete.',
+        qaList: evaluatedQaList
+      };
+
+      state.lastCompletedResult = newResult;
+      state.history.unshift(newResult);
+      localStorage.setItem('aimock_history', JSON.stringify(state.history));
+      renderHistoryTable();
+
+      showToast('✨ Gemini AI evaluated and saved to your history!', 'success');
+      renderCompletedScreen(newResult);
+      switchTab('interview-completed');
+      return;
+    } else {
+      showToast(data.error || 'Gemini AI evaluation failed. Please try again.', 'error');
     }
   } catch (err) {
-    console.log('Using local evaluation engine:', err.message);
+    console.error('Interview evaluation error:', err);
+    showToast('Failed to connect to AI evaluation server.', 'error');
   }
-
-  if (evaluatedQaList.length === 0) {
-    let totalLength = 0;
-    let answeredCount = 0;
-    questions.forEach((q, idx) => {
-      const ans = answers[idx] || '';
-      if (ans.trim().length > 0) {
-        answeredCount++;
-        totalLength += ans.length;
-      }
-
-      evaluatedQaList.push({
-        question: `${idx + 1}. ${q}`,
-        answer: ans || '(No answer provided)',
-        critique: ans.length > 50 
-          ? "Good conceptual understanding with relevant keywords. Clear articulation of technical details."
-          : "Answer is brief. Adding concrete examples or practical edge cases would strengthen this response."
-      });
-    });
-
-    if (answeredCount > 0) {
-      const base = Math.min(88, Math.max(65, Math.round(60 + (answeredCount * 5) + (totalLength / 60))));
-      overallScore = base;
-      technicalScore = Math.min(95, base + 2);
-      communicationScore = Math.min(95, base - 3);
-      problemSolvingScore = Math.min(95, base - 8);
-      confidenceScore = Math.min(95, base + 7);
-    }
-  } else {
-    technicalScore = Math.min(95, Math.max(60, overallScore + 2));
-    communicationScore = Math.min(95, Math.max(60, overallScore - 3));
-    problemSolvingScore = Math.min(95, Math.max(60, overallScore - 5));
-    confidenceScore = Math.min(95, Math.max(60, overallScore + 4));
-  }
-
-  // Create result object
-  const newResult = {
-    id: savedReportId || `hist-${Date.now()}`,
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    role: role,
-    difficulty: difficulty,
-    score: overallScore,
-    metrics: {
-      technical: technicalScore,
-      communication: communicationScore,
-      problemSolving: problemSolvingScore,
-      confidence: confidenceScore
-    },
-    feedback: performanceReview,
-    qaList: evaluatedQaList
-  };
-
-  state.lastCompletedResult = newResult;
-
-  // Save to history
-  state.history.unshift(newResult);
-  localStorage.setItem('aimock_history', JSON.stringify(state.history));
-  renderHistoryTable();
-
-  // Render Completed screen
-  renderCompletedScreen(newResult);
-  switchTab('interview-completed');
 }
 
 function renderCompletedScreen(result) {
@@ -548,31 +501,6 @@ let speechRecognizer = null;
 let isRecording = false;
 let preSpeechBaseText = '';
 
-// Sample Spoken Answers for Practice & Dictation Simulation
-const SAMPLE_SPOKEN_ANSWERS = {
-  "Software Developer": [
-    "In JavaScript, var is function-scoped and hoisted, which often leads to unintended side effects. In contrast, let and const are block-scoped. Const prevents reassignment and is my default for writing immutable, predictable code. I use let only when variable values must be reassigned.",
-    "I handle errors in React by using try-catch blocks for asynchronous calls like API fetch requests, paired with local state to show alert feedback. For runtime component crashes, I use React Error Boundaries to catch unhandled errors and show a clean fallback UI.",
-    "Promises represent asynchronous values with pending, resolved, or rejected states. Async and await is syntactic sugar built on top of promises, making asynchronous logic read cleanly like synchronous code and handling rejections with try-catch.",
-    "REST is an architectural pattern using standard HTTP methods: GET for reading resources, POST for creating, PUT or PATCH for modifying, and DELETE for removing. It ensures stateless communication and clean URL resource hierarchy.",
-    "I optimize frontend performance using code splitting with React.lazy, optimizing and compressing image formats, caching static assets with service workers, and memoizing expensive computations using useMemo and useCallback."
-  ],
-  "Frontend Developer": [
-    "The Virtual DOM is a lightweight in-memory representation of the real DOM. React computes differences using its reconciliation diffing algorithm and updates only the modified nodes in the real browser DOM efficiently.",
-    "Flexbox is ideal for one-dimensional layouts along a row or column, while CSS Grid is designed for two-dimensional grid layouts with explicit rows and columns. I use Flexbox for component bars and Grid for overall page layouts.",
-    "To prevent unnecessary re-renders, I use React.memo on child components, wrap callback functions in useCallback, maintain atomic state closer to where it is used, and avoid inline object declarations in JSX props.",
-    "Core Web Vitals measure user experience: LCP for loading speed, FID or INP for interactivity responsiveness, and CLS for visual stability. I optimize LCP through preloading key assets and CDN image delivery.",
-    "I implement accessibility by using semantic HTML tags, proper ARIA labels where needed, ensuring keyboard navigation with logical tabIndex, and maintaining WCAG-compliant contrast ratios."
-  ],
-  "Backend Developer": [
-    "Database indexes create fast lookup structures like B-Trees. While they dramatically speed up SELECT queries, they add overhead to INSERT and UPDATE operations because the index tree must be updated on every write.",
-    "Vertical scaling involves adding more CPU and RAM to a single machine, while horizontal scaling distributes load across multiple servers using load balancers and database replicas or sharding.",
-    "A secure JWT flow uses short-lived access tokens stored in memory and longer-lived refresh tokens stored in secure HttpOnly cookies, verified against a revocation list during token refreshes.",
-    "The CAP theorem states that a distributed system can guarantee at most two out of Consistency, Availability, and Partition Tolerance. Under network partitions, systems must choose between consistency or availability.",
-    "I prevent SQL injection by always using parameterized queries and ORMs. To prevent XSS, I sanitize user inputs, escape HTML responses, and enforce strict Content Security Policy headers."
-  ]
-};
-
 function toggleSpeechInput() {
   const micBtn = document.getElementById('micToggleBtn');
   const micLabel = document.getElementById('micBtnLabel');
@@ -584,7 +512,7 @@ function toggleSpeechInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    showToast('Your browser does not support live microphone capture. Click "Sample Spoken Answer" to test voice input!', 'error');
+    showToast('Your browser does not support live speech recognition. Please type your answer or use Chrome/Edge.', 'error');
     return;
   }
 
@@ -647,11 +575,11 @@ function toggleSpeechInput() {
       stopRecording();
 
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        showToast('Microphone access blocked by browser security (common on file://). Click "Sample Spoken Answer" to test, or run via localhost.', 'error');
+        showToast('Microphone access blocked. Please grant microphone permissions in your browser.', 'error');
       } else if (e.error === 'no-speech') {
         showToast('No speech was detected. Please try again.', 'error');
       } else {
-        showToast(`Voice status: ${e.error}. You can also click "Sample Spoken Answer".`, 'error');
+        showToast(`Voice status: ${e.error}.`, 'error');
       }
     };
 
@@ -671,7 +599,7 @@ function toggleSpeechInput() {
   } catch (err) {
     console.error('Speech recognition exception:', err);
     stopRecording();
-    showToast('Microphone unavailable. Use "Sample Spoken Answer" to practice or test.', 'error');
+    showToast('Microphone unavailable on this browser/environment.', 'error');
   }
 }
 
@@ -691,38 +619,6 @@ function stopRecording() {
     } catch (e) {}
     speechRecognizer = null;
   }
-}
-
-// Quick Sample Spoken Dictation (Simulates candidate speaking)
-function handleInsertSampleSpokenAnswer() {
-  const answerInput = document.getElementById('answerInput');
-  const role = state.currentInterview.role || 'Software Developer';
-  const qIdx = state.currentInterview.currentIndex || 0;
-
-  const roleAnswers = SAMPLE_SPOKEN_ANSWERS[role] || SAMPLE_SPOKEN_ANSWERS["Software Developer"];
-  const sample = roleAnswers[qIdx] || "I approach this by structuring the problem into clear components, applying technical best practices, and verifying edge cases through unit tests.";
-
-  // Animate speech dictation text
-  answerInput.value = '';
-  let charPos = 0;
-  
-  const voiceLiveStatus = document.getElementById('voiceLiveStatus');
-  const voiceStatusText = document.getElementById('voiceStatusText');
-  if (voiceLiveStatus) voiceLiveStatus.style.display = 'inline-flex';
-  if (voiceStatusText) voiceStatusText.textContent = 'Dictating sample spoken answer...';
-
-  const typeInterval = setInterval(() => {
-    if (charPos < sample.length) {
-      charPos += 3;
-      answerInput.value = sample.slice(0, charPos);
-      document.getElementById('charCount').textContent = `${answerInput.value.length}/500`;
-      state.currentInterview.answers[qIdx] = answerInput.value;
-    } else {
-      clearInterval(typeInterval);
-      if (voiceLiveStatus) voiceLiveStatus.style.display = 'none';
-      showToast('Sample spoken answer transcribed into response area!', 'success');
-    }
-  }, 20);
 }
 
 // Start New Interview from Completed Screen
