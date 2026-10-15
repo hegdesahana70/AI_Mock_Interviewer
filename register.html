@@ -177,9 +177,7 @@
       btn.textContent = 'Creating account...';
       btn.disabled = true;
 
-      const apiUrl = window.location.origin.includes('5000') 
-        ? '/api/auth/register' 
-        : 'http://localhost:5000/api/auth/register';
+      const apiUrl = '/api/auth/register';
 
       try {
         const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
