@@ -49,12 +49,11 @@ function loadUserData() {
 async function loadHistoryData() {
   const uid = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email;
 
-  if (uid) {
-    try {
-      const apiUrl = window.location.origin.includes('5000') 
-        ? `/api/interview/history/${encodeURIComponent(uid)}` 
-        : `/api/interview/history/${encodeURIComponent(uid)}`;
-      const res = await fetch(apiUrl);
+ if (uid) {
+  try {
+    const apiUrl = `/api/interview/history/${encodeURIComponent(uid)}`;
+    const res = await fetch(apiUrl);
+    // ... rest of your code
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.history)) {
@@ -219,10 +218,7 @@ async function handleStartInterviewSetup() {
   }
 
   let questions = [];
-
-  const apiUrl = window.location.origin.includes('5000') 
-    ? '/api/interview/generate' 
-    : '/api/interview/generate';
+  const apiUrl = '/api/interview/generate';
 
   try {
     const res = await fetch(apiUrl, {
@@ -332,9 +328,7 @@ async function submitInterview() {
     userAnswer: answers[idx] || '(No answer provided)'
   }));
 
-  const apiUrl = window.location.origin.includes('5000') 
-    ? '/api/interview/submit' 
-    : '/api/interview/submit';
+  const apiUrl = '/api/interview/submit';
 
   try {
     const userId = state.currentUser?.id || state.currentUser?.userId || state.currentUser?.email || 'anonymous';
