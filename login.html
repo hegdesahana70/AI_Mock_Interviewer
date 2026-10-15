@@ -278,10 +278,7 @@
       btn.textContent = 'Logging in...';
       btn.disabled = true;
 
-      const apiUrl = window.location.origin.includes('5000') 
-        ? '/api/auth/login' 
-        : 'http://localhost:5000/api/auth/login';
-
+      const apiUrl = '/api/auth/login';
       try {
         const res = await fetch(apiUrl, {
           method: 'POST',
