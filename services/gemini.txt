@@ -1,0 +1,128 @@
+const { GoogleGenAI } = require('@google/genai');
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// Use the canonical model resource path string
+const MODEL_NAME = 'models/gemini-3.8-flash';
+
+function withTimeout(promise, ms = 30000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+  ]);
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function generateWithFallback(prompt, isJsonMode = true) {
+  let lastError = null;
+
+  // Retry up to 3 times for temporary 503 traffic spikes
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const config = {};
+      if (isJsonMode) {
+        config.responseMimeType = 'application/json';
+      }
+
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: prompt,
+          config: config
+        }),
+        30000
+      );
+
+      if (response && response.text) {
+        return response.text;
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`Gemini attempt ${attempt} notice: ${err.message}`);
+      if (attempt < 3) {
+        await sleep(2000); // Wait 2 seconds before retrying
+      }
+    }
+  }
+  throw lastError;
+}
+
+function extractJSON(text) {
+  let clean = text.trim();
+  const match = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  if (match) {
+    clean = match[0];
+  }
+  return JSON.parse(clean);
+}
+
+// 1. Generate Questions dynamically
+async function generateAIQuestions(role, difficulty) {
+  const prompt = `
+    You are an expert technical interviewer at a top tech company. 
+    Generate 4 distinct technical interview questions for a ${difficulty} level ${role} position.
+    
+    MANDATORY REQUIREMENT: 
+    - Include a healthy mix of core technical concepts and AT LEAST ONE Data Structures & Algorithms (DSA) or coding problem relevant to a ${role}.
+    
+    Return the response strictly as a JSON array of strings:
+    ["Question 1", "Question 2", "Question 3", "Question 4"]
+  `;
+  const raw = await generateWithFallback(prompt, true);
+  return extractJSON(raw);
+}
+
+// 2. Real AI Performance Evaluation Report
+async function evaluateAIPerformance(role, qaPairs) {
+  const prompt = `
+    You are a strict, highly rigorous technical interviewer at a top-tier tech company. 
+    Evaluate the following interview answers for a ${role} role. 
+    Q&A Data: ${JSON.stringify(qaPairs)}
+
+    GRADING RULES:
+    1. PRIMARY FOCUS: Technical correctness and depth of knowledge (70% weight).
+    2. SECONDARY FOCUS: Communication and clarity (20% weight).
+    3. COMPLETENESS & CONFIDENCE: (10% weight). If answers are blank or missing, score 0.
+    
+    Return strictly as a JSON object with this exact structure:
+    {
+      "overallScore": 85,
+      "performanceReview": "Detailed technical review summary",
+      "metrics": {
+        "technical": 85,
+        "communication": 80,
+        "problemSolving": 90,
+        "confidence": 85
+      },
+      "evaluatedQaPairs": [
+        {
+          "question": "Question text",
+          "userAnswer": "Candidate answer",
+          "aiFeedback": "Critique",
+          "modelAnswer": "Ideal expert solution and talking points",
+          "score": 85
+        }
+      ]
+    }
+  `;
+
+  const raw = await generateWithFallback(prompt, true);
+  return extractJSON(raw);
+}
+
+// 3. Get Model / Expected Answer when requested
+async function getModelAnswer(questionText) {
+  const prompt = `
+    Provide a clear, concise expected model answer and key technical talking points for this interview question:
+    "${questionText}"
+  `;
+  const raw = await generateWithFallback(prompt, false);
+  return raw;
+}
+
+module.exports = { 
+  generateAIQuestions, 
+  evaluateAIPerformance, 
+  getModelAnswer 
+};

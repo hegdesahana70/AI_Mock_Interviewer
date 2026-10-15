@@ -1,0 +1,165 @@
+const fs = require('fs');
+const path = require('path');
+const mongoose = require('mongoose');
+const Interview = require('../models/Interview');
+const { generateAIQuestions, evaluateAIPerformance, getModelAnswer } = require('../services/geminiService');
+
+const DATA_DIR = path.join(__dirname, '../data');
+const INTERVIEWS_FILE = path.join(DATA_DIR, 'interviews.json');
+
+function ensureDataFile() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(INTERVIEWS_FILE)) {
+    fs.writeFileSync(INTERVIEWS_FILE, JSON.stringify([], null, 2));
+  }
+}
+
+function getLocalInterviews() {
+  ensureDataFile();
+  try {
+    return JSON.parse(fs.readFileSync(INTERVIEWS_FILE, 'utf-8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalInterview(item) {
+  ensureDataFile();
+  const list = getLocalInterviews();
+  list.unshift(item);
+  fs.writeFileSync(INTERVIEWS_FILE, JSON.stringify(list, null, 2));
+}
+
+function isMongoConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
+exports.getQuestions = async (req, res) => {
+  try {
+    const { role, difficulty } = req.body;
+    const questions = await generateAIQuestions(role, difficulty);
+    res.status(200).json({ success: true, questions });
+  } catch (error) {
+    console.error('Question generation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.submitInterview = async (req, res) => {
+  try {
+    const { userId, role, difficulty, qaPairs } = req.body;
+
+    const hasAnswers = (qaPairs || []).some(
+      p => p.userAnswer && p.userAnswer.trim() !== '' && p.userAnswer !== '(No answer provided)'
+    );
+
+    let evaluation = null;
+
+    if (!hasAnswers) {
+      evaluation = {
+        overallScore: 0,
+        performanceReview: "No answers were provided for this interview session. Technical knowledge, problem-solving, and communication could not be evaluated.",
+        metrics: {
+          technical: 0,
+          communication: 0,
+          problemSolving: 0,
+          confidence: 0
+        },
+        evaluatedQaPairs: (qaPairs || []).map(p => ({
+          question: p.question,
+          userAnswer: '(No answer provided)',
+          aiFeedback: 'Question was left unattempted. Score: 0/100.',
+          score: 0
+        }))
+      };
+    } else {
+      try {
+        evaluation = await evaluateAIPerformance(role, qaPairs);
+      } catch (aiErr) {
+        console.error('Gemini AI evaluation failed:', aiErr);
+        return res.status(500).json({ success: false, error: `AI Evaluation Error: ${aiErr.message}` });
+      }
+    }
+
+    const interviewData = {
+      userId: userId || 'anonymous',
+      role: role || 'General Interview',
+      difficulty: difficulty || 'Intermediate',
+      overallScore: evaluation.overallScore,
+      performanceReview: evaluation.performanceReview,
+      metrics: evaluation.metrics || {
+        technical: evaluation.overallScore,
+        communication: evaluation.overallScore,
+        problemSolving: evaluation.overallScore,
+        confidence: evaluation.overallScore
+      },
+      qaPairs: evaluation.evaluatedQaPairs
+    };
+
+    let report = null;
+
+    if (isMongoConnected()) {
+      try {
+        const newInterview = await Interview.create(interviewData);
+        report = newInterview;
+      } catch (dbErr) {
+        console.warn('MongoDB save error, saving locally:', dbErr.message);
+      }
+    }
+
+    if (!report) {
+      report = {
+        _id: `interview-${Date.now()}`,
+        ...interviewData,
+        createdAt: new Date().toISOString()
+      };
+      saveLocalInterview(report);
+    }
+
+    res.status(201).json({ success: true, message: "Interview evaluated successfully", report });
+  } catch (error) {
+    console.error('Submit interview server error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (isMongoConnected()) {
+      try {
+        let query = {};
+        if (userId && userId !== 'undefined' && userId !== 'null' && userId !== 'anonymous') {
+          query = { userId };
+        }
+        const history = await Interview.find(query).sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, history });
+      } catch (e) {
+        console.warn('MongoDB history query error:', e.message);
+      }
+    }
+    const all = getLocalInterviews();
+    const history = all.filter(i => !userId || i.userId === userId || userId === 'local-user' || userId === 'anonymous');
+    res.status(200).json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// 👉 ADDED HERE: Controller function for fetching the expected model answer when a student gets stuck
+exports.fetchModelAnswer = async (req, res) => {
+  try {
+    const { questionText } = req.body;
+    if (!questionText) {
+      return res.status(400).json({ success: false, error: 'Question text is required' });
+    }
+
+    const modelAnswer = await getModelAnswer(questionText);
+    res.status(200).json({ success: true, modelAnswer });
+  } catch (error) {
+    console.error('Model answer generation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
